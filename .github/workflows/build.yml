@@ -15,6 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Unpack source and phone patch
+        run: |
+          mkdir -p work
+          unzip -q "$(ls procraft-0*.zip | head -n1)" -d work
+          root="$(dirname "$(dirname "$(find work -path '*/android/gradlew' | head -n1)")")"
+          unzip -qo procraft-phone-fit.zip -d "$root"
+          echo "ROOT=$root" >>"$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -27,6 +35,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
+          workspaces: ${{ env.ROOT }}
           key: phone-android
 
       - name: Install cargo-ndk and the Android NDK
@@ -36,13 +45,15 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >>"$GITHUB_ENV"
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-cleanup: true
 
       - name: Build
-        working-directory: android
-        run: ./gradlew --no-daemon :app:assembleRelease -Pprocraft.abis=arm64-v8a
+        working-directory: ${{ env.ROOT }}/android
+        run: chmod +x gradlew && ./gradlew --no-daemon :app:assembleRelease -Pprocraft.abis=arm64-v8a
 
       - uses: actions/upload-artifact@v4
         with:
           name: procraft-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: ${{ env.ROOT }}/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
