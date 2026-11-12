@@ -19,10 +19,15 @@ jobs:
 
       - name: Unpack source and phone patch
         run: |
+          ls -la
           mkdir -p work
-          unzip -q "$(ls procraft-0*.zip | head -n1)" -d work
+          src="$(ls procraft-0*.zip | head -n1)"
+          patch="$(ls -t procraft-phone*.zip | head -n1)"
+          echo "source: $src"
+          echo "patch: $patch"
+          unzip -q "$src" -d work
           root="$(dirname "$(dirname "$(find work -path '*/android/gradlew' | head -n1)")")"
-          unzip -qo procraft-phone-fit.zip -d "$root"
+          unzip -qo "$patch" -d "$root"
           echo "ROOT=$root" >>"$GITHUB_ENV"
 
       - uses: actions/setup-java@v4
